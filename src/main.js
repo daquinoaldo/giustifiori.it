@@ -1,1 +1,196 @@
-jQuery(document).ready(function(){var f=250,k=(1000/60/f)/4,d=a(0.42,0.03,0.77,0.63,k),h=a(0.27,0.5,0.6,0.99,k),m=false;$(".cd-slider-wrapper").each(function(){c($(this))});function c(o){var p=o.find(".cd-slider"),r=o.find(".cd-slider-navigation"),n=o.find(".cd-slider-controls").find("li");var q=[];q[0]=p.data("step1");q[1]=p.data("step4");q[2]=p.data("step2");q[3]=p.data("step5");q[4]=p.data("step3");q[5]=p.data("step6");r.on("click",".next-slide",function(s){s.preventDefault();g(p,n,q)});r.on("click",".prev-slide",function(s){s.preventDefault();b(p,n,q)});p.on("swipeleft",function(s){g(p,n,q)});p.on("swiperight",function(s){b(p,n,q)});n.on("click",function(t){t.preventDefault();var v=$(this);if(!v.hasClass("selected")){var u=v.index(),x=p.children("li").eq(u),y=i(p),s=y.index(),w="";w=(s<u)?"next":"prev";e(y,x,w,n,q)}});$(document).keyup(function(s){if(s.which=="37"&&l(p.get(0))){b(p,n,q)}else{if(s.which=="39"&&l(p.get(0))){g(p,n,q)}}})}function i(o,n,p){return o.find(".visible")}function g(o,n,p){var r=i(o),q=(r.next("li").length>0)?r.next("li"):o.find("li").eq(0);e(r,q,"next",n,p)}function b(p,o,q){var r=i(p),n=(r.prev("li").length>0)?r.prev("li"):p.find("li").last();e(r,n,"prev",o,q)}function e(o,r,q,u,w){if(!m){m=true;var v=r.find("path").attr("id"),n=Snap("#"+v);if(q=="next"){var t=w[0],s=w[2],p=w[4]}else{var t=w[1],s=w[3],p=w[5]}j(r,u);r.addClass("is-animating");n.attr("d",t).animate({d:s},f,d,function(){n.animate({d:p},f,h,function(){o.removeClass("visible");r.addClass("visible").removeClass("is-animating");m=false})})}}function j(p,o){var n=p.index();o.removeClass("selected").eq(n).addClass("selected")}function a(q,s,o,r,u){var p=function(x){var w=1-x;return 3*w*w*x*q+3*w*x*x*o+x*x*x};var n=function(x){var w=1-x;return 3*w*w*x*s+3*w*x*x*r+x*x*x};var t=function(x){var w=1-x;return 3*(2*(x-1)*x+w*w)*q+3*(-x*x*x+2*w*x)*o};return function(z){var v=z,D,C,A,w,B,y;for(A=v,y=0;y<8;y++){w=p(A)-v;if(Math.abs(w)<u){return n(A)}B=t(A);if(Math.abs(B)<0.000001){break}A=A-w/B}D=0,C=1,A=v;if(A<D){return n(D)}if(A>C){return n(C)}while(D<C){w=p(A);if(Math.abs(w-v)<u){return n(A)}if(v>w){D=A}else{C=A}A=(C-D)*0.5+D}return n(A)}}function l(p){var r=p.offsetTop;var q=p.offsetLeft;var o=p.offsetWidth;var n=p.offsetHeight;while(p.offsetParent){p=p.offsetParent;r+=p.offsetTop;q+=p.offsetLeft}return(r<(window.pageYOffset+window.innerHeight)&&q<(window.pageXOffset+window.innerWidth)&&(r+n)>window.pageYOffset&&(q+o)>window.pageXOffset)}});
+jQuery(document).ready(function(){
+	/*
+		convert a cubic bezier value to a custom mina easing
+		http://stackoverflow.com/questions/25265197/how-to-convert-a-cubic-bezier-value-to-a-custom-mina-easing-snap-svg
+	*/
+	var duration = 250,
+		epsilon = (1000 / 60 / duration) / 4,
+		firstCustomMinaAnimation = bezier(.42,.03,.77,.63, epsilon),
+		secondCustomMinaAnimation = bezier(.27,.5,.6,.99, epsilon),
+		animating = false;
+
+	//initialize the slider
+	$('.cd-slider-wrapper').each(function(){
+		initSlider($(this));
+	});
+
+	function initSlider(sliderWrapper) {
+		//cache jQuery objects
+		var slider = sliderWrapper.find('.cd-slider'),
+			sliderNav = sliderWrapper.find('.cd-slider-navigation'),
+			sliderControls = sliderWrapper.find('.cd-slider-controls').find('li');
+
+		//store path 'd' attribute values	
+		var pathArray = [];
+		pathArray[0] = slider.data('step1');
+		pathArray[1] = slider.data('step4');
+		pathArray[2] = slider.data('step2');
+		pathArray[3] = slider.data('step5');
+		pathArray[4] = slider.data('step3');
+		pathArray[5] = slider.data('step6');
+
+		//update visible slide when user clicks next/prev arrows
+		sliderNav.on('click', '.next-slide', function(event){
+			event.preventDefault();
+			nextSlide(slider, sliderControls, pathArray);
+		});
+		sliderNav.on('click', '.prev-slide', function(event){
+			event.preventDefault();
+			prevSlide(slider, sliderControls, pathArray);
+		});
+
+		//detect swipe event on mobile - update visible slide
+		slider.on('swipeleft', function(event){
+			nextSlide(slider, sliderControls, pathArray);
+		});
+		slider.on('swiperight', function(event){
+			prevSlide(slider, sliderControls, pathArray);
+		});
+
+		//update visible slide when user clicks .cd-slider-controls buttons
+		sliderControls.on('click', function(event){
+			event.preventDefault();
+			var selectedItem = $(this);
+			if(!selectedItem.hasClass('selected')) {
+				// if it's not already selected
+				var selectedSlidePosition = selectedItem.index(),
+					selectedSlide = slider.children('li').eq(selectedSlidePosition),
+					visibleSlide = retrieveVisibleSlide(slider),
+					visibleSlidePosition = visibleSlide.index(),
+					direction = '';
+				direction = ( visibleSlidePosition < selectedSlidePosition) ? 'next': 'prev';
+				updateSlide(visibleSlide, selectedSlide, direction, sliderControls, pathArray);
+			}
+		});
+
+		//keyboard slider navigation
+		$(document).keyup(function(event){
+			if(event.which=='37' && elementInViewport(slider.get(0)) ) {
+				prevSlide(slider, sliderControls, pathArray);
+			} else if( event.which=='39' && elementInViewport(slider.get(0)) ) {
+				nextSlide(slider, sliderControls, pathArray);
+			}
+		});
+	}
+
+	function retrieveVisibleSlide(slider, sliderControls, pathArray) {
+		return slider.find('.visible');
+	}
+	function nextSlide(slider, sliderControls, pathArray ) {
+		var visibleSlide = retrieveVisibleSlide(slider),
+			nextSlide = ( visibleSlide.next('li').length > 0 ) ? visibleSlide.next('li') : slider.find('li').eq(0);
+		updateSlide(visibleSlide, nextSlide, 'next', sliderControls, pathArray);
+	}
+	function prevSlide(slider, sliderControls, pathArray ) {
+		var visibleSlide = retrieveVisibleSlide(slider),
+				prevSlide = ( visibleSlide.prev('li').length > 0 ) ? visibleSlide.prev('li') : slider.find('li').last();
+			updateSlide(visibleSlide, prevSlide, 'prev', sliderControls, pathArray);
+	}
+	function updateSlide(oldSlide, newSlide, direction, controls, paths) {
+		if(!animating) {
+			//don't animate if already animating
+			animating = true;
+			var clipPathId = newSlide.find('path').attr('id'),
+				clipPath = Snap('#'+clipPathId);
+
+			if( direction == 'next' ) {
+				var path1 = paths[0],
+					path2 = paths[2],
+					path3 = paths[4];
+			} else {
+				var path1 = paths[1],
+					path2 = paths[3],
+					path3 = paths[5];
+			}
+
+			updateNavSlide(newSlide, controls);
+			newSlide.addClass('is-animating');
+			clipPath.attr('d', path1).animate({'d': path2}, duration, firstCustomMinaAnimation, function(){
+				clipPath.animate({'d': path3}, duration, secondCustomMinaAnimation, function(){
+					oldSlide.removeClass('visible');
+					newSlide.addClass('visible').removeClass('is-animating');
+					animating = false;
+				});
+			});
+		}
+	}
+
+	function updateNavSlide(actualSlide, controls) {
+		var position = actualSlide.index();
+		controls.removeClass('selected').eq(position).addClass('selected');
+	}
+
+	function bezier(x1, y1, x2, y2, epsilon){
+		//https://github.com/arian/cubic-bezier
+		var curveX = function(t){
+			var v = 1 - t;
+			return 3 * v * v * t * x1 + 3 * v * t * t * x2 + t * t * t;
+		};
+
+		var curveY = function(t){
+			var v = 1 - t;
+			return 3 * v * v * t * y1 + 3 * v * t * t * y2 + t * t * t;
+		};
+
+		var derivativeCurveX = function(t){
+			var v = 1 - t;
+			return 3 * (2 * (t - 1) * t + v * v) * x1 + 3 * (- t * t * t + 2 * v * t) * x2;
+		};
+
+		return function(t){
+
+			var x = t, t0, t1, t2, x2, d2, i;
+
+			// First try a few iterations of Newton's method -- normally very fast.
+			for (t2 = x, i = 0; i < 8; i++){
+				x2 = curveX(t2) - x;
+				if (Math.abs(x2) < epsilon) return curveY(t2);
+				d2 = derivativeCurveX(t2);
+				if (Math.abs(d2) < 1e-6) break;
+				t2 = t2 - x2 / d2;
+			}
+
+			t0 = 0, t1 = 1, t2 = x;
+
+			if (t2 < t0) return curveY(t0);
+			if (t2 > t1) return curveY(t1);
+
+			// Fallback to the bisection method for reliability.
+			while (t0 < t1){
+				x2 = curveX(t2);
+				if (Math.abs(x2 - x) < epsilon) return curveY(t2);
+				if (x > x2) t0 = t2;
+				else t1 = t2;
+				t2 = (t1 - t0) * .5 + t0;
+			}
+
+			// Failure
+			return curveY(t2);
+
+		};
+	};
+
+	/*
+		How to tell if a DOM element is visible in the current viewport?
+		http://stackoverflow.com/questions/123999/how-to-tell-if-a-dom-element-is-visible-in-the-current-viewport
+	*/
+	function elementInViewport(el) {
+		var top = el.offsetTop;
+		var left = el.offsetLeft;
+		var width = el.offsetWidth;
+		var height = el.offsetHeight;
+
+		while(el.offsetParent) {
+		    el = el.offsetParent;
+		    top += el.offsetTop;
+		    left += el.offsetLeft;
+		}
+
+		return (
+		    top < (window.pageYOffset + window.innerHeight) &&
+		    left < (window.pageXOffset + window.innerWidth) &&
+		    (top + height) > window.pageYOffset &&
+		    (left + width) > window.pageXOffset
+		);
+	}
+});
