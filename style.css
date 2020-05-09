@@ -164,6 +164,7 @@ footer {
   font-size: 11px;
   color: #959595;
   border-top: 1px solid #E1E1E1;
+  width: 100%;
 }
 
 .siteinfo p {
